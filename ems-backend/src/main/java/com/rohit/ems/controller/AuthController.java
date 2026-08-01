@@ -2,10 +2,12 @@ package com.rohit.ems.controller;
 
 import com.rohit.ems.dto.JwtResponse;
 import com.rohit.ems.dto.LoginRequest;
+import com.rohit.ems.dto.ResetPasswordRequest;
 import com.rohit.ems.dto.SignupRequest;
 import com.rohit.ems.entity.User;
 import com.rohit.ems.respository.UserRepository;
 import com.rohit.ems.security.JwtUtil;
+import com.rohit.ems.service.ForgotPasswordService;
 import com.rohit.ems.service.OtpService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -26,6 +30,7 @@ public class AuthController {
 	private final PasswordEncoder passwordEncoder;
 	private final JwtUtil jwtUtil;
 	private final OtpService otpService;
+	private final ForgotPasswordService forgotPasswordService;
 	
 	@PostMapping("/send-otp")
 	public ResponseEntity<?> sendOtp(@RequestParam String email){
@@ -78,5 +83,24 @@ public class AuthController {
 		}
 		
 		return ResponseEntity.badRequest().body("Invalid credentials");
+	}
+	
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody Map<String,String> request){
+		try{
+			forgotPasswordService.sendResetLink(request.get("email"));
+			return ResponseEntity.ok("Password reset link sent to "+request.get("email"));
+		} catch (RuntimeException e){
+			return ResponseEntity.badRequest().body(e.getMessage());
+		}
+	}
+	
+	public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request){
+		try{
+			forgotPasswordService.resetPassword(request.getToken(),request.getNewPassword());
+			return ResponseEntity.ok("Password reset successfully");
+		} catch (RuntimeException e){
+			return ResponseEntity.badRequest().body(e.getMessage());
+		}
 	}
 }

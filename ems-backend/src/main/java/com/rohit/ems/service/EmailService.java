@@ -14,6 +14,12 @@ public class EmailService {
 	@Value("${brevo.api.key}")
 	private String apiKey;
 	
+	@Value("${app.frontend.url}")
+	private String frontendUrl;
+	
+	@Value("${app.sender.email}")
+	private String senderEmail;
+	
 	private final WebClient webClient;
 	
 	public EmailService() {
@@ -24,7 +30,7 @@ public class EmailService {
 	
 	public void sendOtp(String email, String otp) {
 		Map<String, Object> body = new HashMap<>();
-		body.put("sender", Map.of("email", "jonathan75728@gmail.com", "name", "EMS App"));
+		body.put("sender", Map.of("email", senderEmail, "name", "EMS App"));
 		body.put("to", List.of(Map.of("email", email)));
 		body.put("subject", "Email Verification OTP - EMS");
 		body.put("htmlContent",
@@ -37,6 +43,31 @@ public class EmailService {
 				.uri("/smtp/email")
 				.header("api-key", apiKey)
 				.header("Content-Type", "application/json")
+				.bodyValue(body)
+				.retrieve()
+				.bodyToMono(String.class)
+				.block();
+	}
+	
+	public void setPasswordResetLink(String email, String token) {
+		String resetLink = frontendUrl + "/reset-password?token=" + token;
+		
+		Map<String, Object> body = new HashMap<>();
+		body.put("sender", Map.of("email", senderEmail, "name", "EMS App"));
+		body.put("to", List.of(Map.of("email", email)));
+		body.put("subject", "Password Reset Request - EMS");
+		body.put("htmlContent",
+				"<p>Click the link below to reset your password:</p>"+
+					"<a href='" + resetLink + "'>Reset Password</a>" +
+					"<p>This link is valid for 15 minutes.</p>" +
+					"<p>If you did not request this, ignore this email.</p>"
+				
+		);
+		
+		webClient.post()
+				.uri("/smtp/email")
+				.header("api-key",apiKey)
+				.header("Content-Type","application/json")
 				.bodyValue(body)
 				.retrieve()
 				.bodyToMono(String.class)
